@@ -4,7 +4,7 @@ FROM python:3
 RUN set -x && \
   apt-get update && \
   apt-get install -y vim && \
-  pip install selenium jaconv mysql-connector-python python-dateutil
+  pip install selenium jaconv mysql-connector-python python-dateutil line-bot-sdk
 
 
 # Add a script to be executed every time the container starts.

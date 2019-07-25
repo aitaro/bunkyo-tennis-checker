@@ -1,6 +1,10 @@
 #!/usr/local/bin/python3
 from selenium import webdriver
 
+from linebot import LineBotApi
+from linebot.models import TextSendMessage
+import os
+
 # from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from time import sleep
@@ -16,7 +20,6 @@ import mysql.connector
 def bunkyo_scraper(browser: webdriver, mysql):
     for i in range(5):
         bunkyo_court_scraper(i + 1, browser, mysql)
-        break
 
 
 def date_modifier(date):
@@ -28,26 +31,43 @@ def date_modifier(date):
         return next_year_date
 
 
-def term(date, court_number, availability):
-    Mysql.get(date, court_number)
-    return True
+def term(mysql, date, court_number, term_number, availability):
+    res = mysql.get(date, court_number, term_number)
+    if res is None:
+        mysql.create(date, court_number, term_number, availability)
+        return True
+    if res:
+        mysql.update(date, court_number, term_number, availability)
+        return True
+    if not res:
+        if availability:
+            line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
+            messages = TextSendMessage(
+                text=f"{str(date)}に{court_number}番コートで{term_number}に空きができました。"
+            )
+            line_bot_api.broadcast(messages=messages)
+            print("通知")
+        mysql.update(date, court_number, term_number, availability)
+        return True
 
 
 def schedule_parser(text, court_number, mysql):
     tdate = None
     for line in text.split("\n"):
         if tdate:
+            print(tdate)
             terms = line.split()
-            for i in len(terms):
+            for i in range(len(terms)):
+                print(terms[i])
                 if terms[i] == "○":
-                    term(tdate, court_number, True)
+                    term(mysql, tdate, court_number, i + 1, True)
                 if terms[i] == "×":
-                    term(tdate, court_number, False)
+                    term(mysql, tdate, court_number, i + 1, False)
 
-        if re.match("日\(\w\)", line):
-            flag = "saturday"
+        if re.match(".*日\(.\)", line):
+            print(line)
             day = line.replace("月", "-")
-            day = re.sub("日\(\w\)", "", day)
+            day = re.sub("日\(.\)", "", day)
             day = datetime.datetime.now().strftime("%Y") + "-" + day
             tdatetime = datetime.datetime.strptime(day, "%Y-%m-%d")
             tdate = datetime.date(tdatetime.year, tdatetime.month, tdatetime.day)
@@ -87,13 +107,16 @@ def bunkyo_court_scraper(court_number, browser: webdriver, mysql):
     browser.find_element_by_link_text(f"第{court_number_full}コート土日祝").click()
     sleep(2)
 
-    # element = driver.find_element_by_partial_link_text(u"(日)")
     element = browser.find_element_by_css_selector("form")
-    # print(element.text)
     schedule_parser(element.text, court_number, mysql)
 
-    browser.find_element_by_css_selector("input[value='  次の週  ']").click()
-    sleep(2)
+    for i in range(12):
+
+        browser.find_element_by_css_selector("input[value='  次の週  ']").click()
+        sleep(2)
+
+        element = browser.find_element_by_css_selector("form")
+        schedule_parser(element.text, court_number, mysql)
 
     browser.save_screenshot("images/" + dtstr + ".png")
 
