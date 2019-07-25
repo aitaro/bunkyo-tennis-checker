@@ -104,3 +104,6 @@ env.yaml
 
 # mypy
 .mypy_cache/
+
+# mysql data
+db/*

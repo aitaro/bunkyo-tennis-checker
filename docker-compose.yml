@@ -1,0 +1,40 @@
+selenium-hub:
+  image: selenium/hub
+  container_name: 'selenium-hub'
+  ports:
+    - 4444:4444
+
+chrome:
+  image: selenium/node-chrome-debug
+  container_name: 'chrome'
+  links:
+    - selenium-hub:hub
+  ports:
+    - 5900:5900
+  volumes:
+    - /dev/shm:/dev/shm
+
+python:
+  build: './python-selenium'
+  container_name: 'python'
+  # depends_on:
+  #   - db
+  links:
+    - selenium-hub:hub
+    - db
+  # command: 'python sample.py'
+  working_dir: '/root/script/'
+  volumes:
+    - ./script/:/root/script/
+  environment:
+    - 'TZ=Asia/Tokyo'
+
+db:
+  image: mysql:5.7
+  ports:
+      - "3306:3306"
+  volumes:
+      # 永続化するときにマウントするdir
+      - ./db/mysql_data:/var/lib/mysql
+  environment:
+      MYSQL_ROOT_PASSWORD: root
