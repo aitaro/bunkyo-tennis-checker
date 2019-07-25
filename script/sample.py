@@ -118,7 +118,7 @@ def bunkyo_court_scraper(court_number, browser: webdriver, mysql):
         element = browser.find_element_by_css_selector("form")
         schedule_parser(element.text, court_number, mysql)
 
-    browser.save_screenshot("images/" + dtstr + ".png")
+    # browser.save_screenshot("images/" + dtstr + ".png")
 
 
 if __name__ == "__main__":
