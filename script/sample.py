@@ -110,7 +110,7 @@ def bunkyo_court_scraper(court_number, browser: webdriver, mysql):
     element = browser.find_element_by_css_selector("form")
     schedule_parser(element.text, court_number, mysql)
 
-    for i in range(12):
+    for i in range(8):
 
         browser.find_element_by_css_selector("input[value='  次の週  ']").click()
         sleep(2)
